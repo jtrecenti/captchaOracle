@@ -26,10 +26,19 @@ oracle_loss <- torch::nn_module(
 
     # loss dos casos classificados corretamente
     if (length(ind_ok) > 0) {
-      loss_corretos <- myloss(
-        input[ind_ok,..,drop=FALSE],
-        torch::torch_stack(target$y[ind_ok])$squeeze(2L)
-      )
+      if (is.list(target$y)) {
+        loss_corretos <- myloss(
+          input[ind_ok,..,drop=FALSE],
+          torch::torch_stack(target$y[ind_ok])$squeeze(2L)
+        )
+      } else {
+        browser()
+        loss_corretos <- myloss(
+          input[ind_ok,..,drop=FALSE],
+          target$y[ind_ok,..]$squeeze(2L)
+        )
+      }
+
     } else {
       loss_corretos <- 0
     }
