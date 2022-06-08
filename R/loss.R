@@ -32,7 +32,7 @@ oracle_loss <- torch::nn_module(
           torch::torch_stack(target$y[ind_ok])$squeeze(2L)
         )
       } else {
-        browser()
+        # browser()
         loss_corretos <- myloss(
           input[ind_ok,..,drop=FALSE],
           target$y[ind_ok,..]$squeeze(2L)
