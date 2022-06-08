@@ -17,7 +17,7 @@ oracle_loss <- torch::nn_module(
     z <- target$z$to(device = "cpu")
     ind_ok <- which(!as.logical(z))
     ind_not_ok <- which(as.logical(z))
-    usethis::ui_info("OK: {length(ind_ok)}; NOT OK: {length(ind_not_ok)}")
+    print(glue::glue("OK: {length(ind_ok)}; NOT OK: {length(ind_not_ok)}"))
 
     # if (length(ind_not_ok) == 0) {
     #   browser()
