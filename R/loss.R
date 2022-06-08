@@ -18,10 +18,6 @@ oracle_loss <- torch::nn_module(
     ind_ok <- which(!as.logical(z))
     ind_not_ok <- which(as.logical(z))
 
-    if (length(ind_ok) <= 1) {
-      browser()
-    }
-
     # if (length(ind_not_ok) == 0) {
     #   browser()
     # }
