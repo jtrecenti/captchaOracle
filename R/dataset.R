@@ -9,6 +9,23 @@ read_logs <- function(path_logs) {
     dplyr::mutate(file = basename(tools::file_path_sans_ext(file)))
 }
 
+#' Função para juntar os dados de um minibatch corretamente
+#'
+#' @param l lista proveniente de um minibatch
+#'
+#' @export
+collate_oraculo <- function(l) {
+  # browser()
+  x <- purrr::map(l, "x") |>
+    torch::torch_stack()
+  y <- purrr::map(l, "y") |>
+    purrr::map("y")
+  z <- purrr::map(l, "y") |>
+    purrr::map("z") |>
+    torch::torch_stack()
+  list(x = x, y = list(y = y, z = z))
+}
+
 #' Captcha dataset do oráculo
 #'
 #' @param root (string): root directory of dataset where `captcha.zip`

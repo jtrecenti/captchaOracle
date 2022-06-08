@@ -2,6 +2,7 @@
 
 export(captcha_accuracy_oracle)
 export(captcha_dataset_oraculo)
+export(collate_oraculo)
 export(net_captcha_oracle)
 export(oracle_loss)
 importFrom(captcha,captcha_transform_image)
