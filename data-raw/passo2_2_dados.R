@@ -143,6 +143,7 @@ for (n in ntry) {
       )
       set.seed(1)
       ids <- seq_along(captcha_ds)
+      # .8 foi definido na etapa 1, e foi feito com set.seed(1)
       id_train <- sample(ids, .8 * length(captcha_ds))
       id_valid <- setdiff(ids, id_train)
       fs::file_copy(captcha_ds$files[id_train], path_old_train)

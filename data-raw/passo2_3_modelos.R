@@ -16,7 +16,9 @@ path_base_model <- melhores_modelos |>
   dplyr::filter(stringr::str_detect(file, n)) |>
   dplyr::pull(file)
 
+
 base_model <- luz::luz_load(path_base_model)
+
 
 # checks ------------------------------------------------------------------
 
@@ -35,10 +37,11 @@ if (length(teste_1000) < 1000) {
   usethis::ui_stop("Teste com menos de 1000 casos")
 }
 
+
 # datasets do oraculo -----------------------------------------------------
 
 # essa função que lida com o oráculo.
-captcha_ds <- captcha::captcha_dataset_oraculo(
+captcha_ds <- captchaOracle::captcha_dataset_oraculo(
   root = path_train,
   path_logs = path_logs,
   captcha = NULL,
@@ -48,30 +51,18 @@ captcha_ds <- captcha::captcha_dataset_oraculo(
 # captcha_ds$.getitem(1)
 # captcha_ds$.getitem(1506)
 
-coll <- function(l) {
-  # browser()
-  x <- purrr::map(l, "x") %>%
-    torch::torch_stack()
-  y <- purrr::map(l, "y") %>%
-    purrr::map("y")
-  z <- purrr::map(l, "y") %>%
-    purrr::map("z") %>%
-    torch::torch_stack()
-  list(x = x, y = list(y = y, z = z))
-}
-
 captcha_dl_train <- torch::dataloader(
   captcha_ds,
   batch_size = 40,
   shuffle = TRUE,
-  collate_fn = coll
+  collate_fn = captchaOraculo::collate_oraculo
 )
 
 # captcha_dl_train$.iter()$.next()
 
 # esse aqui são dados novos para teste, classificados automaticamente pelo
 # modelo de maxima de acurácia.
-test_ds <- captcha::captcha_dataset_oraculo(
+test_ds <- captchaOracle::captcha_dataset_oraculo(
   root = path_test,
   path_logs = NULL,
   captcha = NULL,
@@ -85,7 +76,6 @@ captcha_dl_test <- torch::dataloader(
 # captcha_dl_test$.iter()$.next()
 
 # model definition --------------------------------------------------------
-
 
 model <- captchaOracle::net_captcha_oracle
 
@@ -162,7 +152,4 @@ fit_model <- function(hparm, ii, path) {
 safe_fit_model <- purrr::possibly(fit_model, NULL)
 # safe_fit_model <- fit_model
 purrr::iwalk(purrr::transpose(hparms), safe_fit_model, path)
-
-
-
 
