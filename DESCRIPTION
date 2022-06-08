@@ -23,3 +23,5 @@ Depends:
     torch
 Remotes:
   decryptr/captcha
+URL: https://github.com/jtrecenti/captchaOracle
+BugReports: https://github.com/jtrecenti/captchaOracle/issues
