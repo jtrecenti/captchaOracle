@@ -111,3 +111,11 @@ net_captcha_oracle <- torch::nn_module(
     out_view
   }
 )
+
+calc_dim_conv <- function (x) {
+  purrr::reduce(1:3, calc_dim_img_one, .init = x)
+}
+
+calc_dim_img_one <- function (x, y) {
+  floor((x - 2)/2)
+}
