@@ -64,7 +64,7 @@ nnf_oracle_loss <- function(input2, target2) {
   probs <- torch::nnf_softmax(input2, 3)
 
 
-  # browser()
+  browser()
   # para cada observação, preciso calcular 1-p(obs)
   # produto: probabilidade completa. Probabilidade do erro
   prob_1_menos <- torch::torch_ones(length(target2))
