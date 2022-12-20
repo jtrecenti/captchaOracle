@@ -6,21 +6,14 @@
 \usage{
 captcha_dataset_oraculo(
   root,
-  captcha,
   path_logs,
   transform_image = captcha::captcha_transform_image,
   transform_label = captcha::captcha_transform_label,
-  download = FALSE,
-  in_memory = TRUE,
   augmentation = NULL
 )
 }
 \arguments{
-\item{root}{(string): root directory of dataset where \code{captcha.zip}
-exists or will be saved to if download is set to \code{TRUE}}
-
-\item{captcha}{(string): name of the captcha, must be one of
-\url{available_captchas()}}
+\item{root}{(string): root directory of the files}
 
 \item{path_logs}{path to log files}
 
@@ -30,14 +23,6 @@ to feed the model.}
 
 \item{transform_label}{(callable, optional): A function/transform
 that takes in the file paths and transform them.}
-
-\item{download}{(bool, optional): If \code{TRUE}, downloads the dataset
-from the internet and puts it in \code{root}. If dataset is already
-downloaded, it is not downloaded again. Defaults to \code{FALSE}}
-
-\item{in_memory}{(bool, optional) If \code{TRUE}, the default, loads
-all the files in memory. If \code{FALSE}, it exports a data generator
-function to read batches from disk.}
 
 \item{augmentation}{(function, optional) If not \code{NULL}, applies a
 function to augment data with randomized preprocessing layers.}
