@@ -9,24 +9,36 @@ read_logs <- function(path_logs) {
     dplyr::mutate(file = basename(tools::file_path_sans_ext(file)))
 }
 
-#' Função para juntar os dados de um minibatch corretamente
+#' Collect and bind minibatches with oracle structure
 #'
-#' @param l lista proveniente de um minibatch
+#' This function reimplements the default `collate_fn` function from
+#' torch dataloaders to deal with the list-like structure of datasets
+#' generated from the [captcha_dataset()] module. Whenever possible,
+#' it applies the [torch::torch_stack()] function to bind the tensors.
+#'
+#' @param mb the minibatch, which is a list of torch tensors.
 #'
 #' @export
-collate_oraculo <- function(l) {
+collate_oracle <- function(mb) {
   # browser()
-  x <- purrr::map(l, "x") |>
-    torch::torch_stack()
-  y <- purrr::map(l, "y") |>
-    purrr::map("y")
-  z <- purrr::map(l, "y") |>
-    purrr::map("z") |>
-    torch::torch_stack()
+  x <- purrr::map(mb, "x") |> torch::torch_stack()
+  y <- purrr::map(mb, "y") |> purrr::map("y")
+  z <- purrr::map(mb, "y") |> purrr::map("z") |> torch::torch_stack()
   list(x = x, y = list(y = y, z = z))
 }
 
-#' Captcha dataset do oráculo
+#' Captcha dataset incorporating incomplete data structure
+#'
+#' When we use oracles, we have to deal with a different data structure
+#' that incorporates incomplete information provided by the websites.
+#' First, we need to pass not only the directory of the images but also
+#' a `log` file that records all the attempts to solve the Captcha through
+#' the website. When there is at least one successful attempt, the image
+#' and the label are read normally, as if we were in the complete data
+#' framework. However, when all the attempts fail, we need to record all
+#' the failed attempts (a list of one-hot encoded labels) for this observation.
+#' The number of failed attempts is not fixed, then we have to store the
+#' data as a list.
 #'
 #' @param root (string): root directory of the files
 #' @param path_logs path to log files
@@ -38,11 +50,22 @@ collate_oraculo <- function(l) {
 #' @param augmentation (function, optional) If not `NULL`, applies a
 #'   function to augment data with randomized preprocessing layers.
 #'
+#' This is an object of class `dataset_generator` created using
+#' [torch::dataset()] function. It has a `initialize()` method that
+#' takes directory containing the input images and the log file,
+#' then assigns all the information in-memory with the list-like data
+#' structure for the response variable. It also assigns a dummy variable
+#' that indicates whether the information is incomplete, to facilitate
+#' loss and accuracy calculation. It also has a `.getitem()` method that
+#' correctly extracts one observation of the dataset in this complex
+#' structure, and a `.length()` method that correctly calculates the
+#' number of Captchas of the dataset.
+#'
 #' @importFrom torch dataset
 #' @importFrom captcha captcha_transform_image captcha_transform_label
 #'
 #' @export
-captcha_dataset_oraculo <- torch::dataset(
+captcha_dataset_oracle <- torch::dataset(
   name = "my_captcha",
   initialize = function(root, path_logs,
                         transform_image = captcha::captcha_transform_image,
@@ -141,17 +164,42 @@ captcha_dataset_oraculo <- torch::dataset(
 )
 
 
-#' Captcha dataset do oráculo online
+#' Captcha dataset incorporating online learning
 #'
-#' @param root (string): root directory of the files
+#' This `dataset_generator` object implements an experimental feature to
+#' learn how to solve the Captcha automatically accessing the web using
+#' an oracle function. It does not need any input data, only the initial
+#' model of class `luz_module_fitted` and the `captcha_access_fn` and
+#' `captcha_test_fn` functions to access the web.
+#'
+#' @param root (string): root directory to save new files
 #' @param model initial model.
-#' @param ntry try n times. Default 1.
+#' @param ntry number of attempts to solve the Captcha. Defaults to 1.
+#' @param captcha_access_fn function that downloads a Captcha image and returns
+#'   all the information needed to test whether the label is correct.
+#' @param captcha_test_fn function that uploads a prediction and tests whether it
+#'   is correct, returning `TRUE` or `FALSE`.
+#' @param p_new hyperparameter to control the probability of downloading new
+#'   data to get a new observation. For example, when `p_new` is `0.2`, the
+#'   default, approximately 20% of the times we get an image to compose a
+#'   minibatch it is a new image downloaded from the internet, and 80% of the
+#'   times it is an already downloaded image.
 #'
 #' @importFrom torch dataset
 #' @importFrom captcha captcha_transform_image captcha_transform_label
 #'
+#' @description
+#' `r lifecycle::badge("experimental")`
+#' The difference from this function to [captcha_dataset_oracle()] is that
+#' it downloads the new data directly from the internet instead of considering
+#' a fixed dataset. To take advantage of the fact that we are downloading a lot
+#' of new images (and new information), it is possible to consider a
+#' probability to download a new image every time we need to get an
+#' observation. This way the downloaded images can be used in more than one
+#' minibatch and we will always have the chance to get new information.
+#'
 #' @export
-captcha_dataset_oraculo_online <- torch::dataset(
+captcha_dataset_oracle_online <- torch::dataset(
   name = "my_captcha",
   initialize = function(root,
                         model,
@@ -189,7 +237,7 @@ captcha_dataset_oraculo_online <- torch::dataset(
 
     if (download_new) {
 
-      safe_oracle <- purrr::possibly(captchaDownload::captcha_oracle, NULL)
+      safe_oracle <- purrr::possibly(captcha_oracle, NULL)
 
       log_data <- NULL
 
@@ -203,7 +251,6 @@ captcha_dataset_oraculo_online <- torch::dataset(
           captcha_test = self$test
         )
       }
-
 
       files <- fs::dir_ls(self$path, type = "file") |>
         fs::file_info() |>
