@@ -2,10 +2,10 @@
 % Please edit documentation in R/model.R
 \name{net_captcha_oracle}
 \alias{net_captcha_oracle}
-\title{Modelo de captcha com oraculo}
+\title{Captcha model using initial model}
 \usage{
 net_captcha_oracle(
-  base_model,
+  base_model = NULL,
   input_dim,
   output_ndigits,
   output_vocab_size,
@@ -16,24 +16,30 @@ net_captcha_oracle(
 )
 }
 \arguments{
-\item{base_model}{modelo base carregado com \code{luz::load_model()}}
+\item{base_model}{base model of class \code{luz_module_fitted}. Defaults to
+\code{NULL}, which indicates no initialization of the model parameters.}
 
-\item{input_dim}{dimensão de entrada}
+\item{input_dim}{input image dimensions}
 
-\item{output_ndigits}{quantidade de digitos da resposta}
+\item{output_ndigits}{response variable number of digits}
 
-\item{output_vocab_size}{tamanho do vocabulario da resposta}
+\item{output_vocab_size}{integer indicating size of the vocabulary}
 
-\item{vocab}{o vocabulario da resposta}
+\item{vocab}{vocabulary elements}
 
-\item{transform}{função de transformação dos dados}
+\item{transform}{function to transform input data}
 
-\item{dropout}{hiperparâmetro de dropout}
+\item{dropout}{vector of two elements indicating dropout hyperparameter}
 
-\item{dense_units}{hiperparâmetro de dense units na camada densa
-que vem depois das convoluções}
+\item{dense_units}{integer indicating number of units used in the
+dense layer applied after the convolutional layers}
+}
+\value{
+object of classes \code{ORACLE-CNN} and \code{nn_module}. It works
+as a predictive function and as the input to a luz fitting workflow.
 }
 \description{
-É o mesmo modelo que o original, com a diferença que inicializamos
-o modelo com os pesos do modelo base ajustado no passo anterior.
+This is the same as the original model, but including an initial
+model to improve using new data. It only uses the input data, so
+we do not need to adapt anything from the original function here.
 }

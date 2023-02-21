@@ -2,15 +2,37 @@
 % Please edit documentation in R/loss.R
 \name{oracle_loss}
 \alias{oracle_loss}
-\title{Loss do oraculo}
+\title{Oracle Loss}
 \usage{
 oracle_loss(weight = NULL, reduction = "mean")
 }
 \arguments{
 \item{weight}{pesos a serem aplicados nas observações}
 
-\item{reduction}{função de redução}
+\item{reduction}{função de redução
+
+This is a \code{\link[torch:nn_module]{torch::nn_module()}} with two main methods: initialize and
+forward. It inherits information from the \code{nn_weighted_loss} module.
+
+The \code{initialize()} method register model weights (default to \code{NULL}) and
+the reduction function, (default to \code{mean}). The \code{forward()} method
+calculates the loss for a minibatch.
+
+First, it separates which indices of the minibatch refer to complete
+labels and which refer to incomplete labels. For the complete labels,
+we have a different data structure for training and validation datasets:
+the former is a list of tensors (to address the attempt history) and
+the latter is a tensor with fixed dimensions. This loss is calculated
+using a simple crossentropy function.
+
+The incomplete loss is calculated only in the training dataset, as the
+validation data include only complete labels. The loss is calculated
+using the proposed method in the doctorate thesis, which is to consider
+the log-probability of not observing the predictions, which is all the
+information provided by the oracle, similar to the survival analysis
+framework.}
 }
 \description{
-Loss do oraculo
+Implements the loss function from the input (probabilities) and target
+(one-hot encoded label).
 }
