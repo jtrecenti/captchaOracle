@@ -1,7 +1,31 @@
-#' Loss do oraculo
+#' Oracle Loss
+#'
+#' Implements the loss function from the input (probabilities) and target
+#' (one-hot encoded label).
 #'
 #' @param weight pesos a serem aplicados nas observações
 #' @param reduction função de redução
+#'
+#' This is a [torch::nn_module()] with two main methods: initialize and
+#' forward. It inherits information from the `nn_weighted_loss` module.
+#'
+#' The `initialize()` method register model weights (default to `NULL`) and
+#' the reduction function, (default to `mean`). The `forward()` method
+#' calculates the loss for a minibatch.
+#'
+#' First, it separates which indices of the minibatch refer to complete
+#' labels and which refer to incomplete labels. For the complete labels,
+#' we have a different data structure for training and validation datasets:
+#' the former is a list of tensors (to address the attempt history) and
+#' the latter is a tensor with fixed dimensions. This loss is calculated
+#' using a simple crossentropy function.
+#'
+#' The incomplete loss is calculated only in the training dataset, as the
+#' validation data include only complete labels. The loss is calculated
+#' using the proposed method in the doctorate thesis, which is to consider
+#' the log-probability of not observing the predictions, which is all the
+#' information provided by the oracle, similar to the survival analysis
+#' framework.
 #'
 #' @importFrom torch nn_module
 #'
@@ -23,8 +47,7 @@ oracle_loss <- torch::nn_module(
     # }
 
     # browser()
-
-    # loss dos casos classificados corretamente
+    # calculate loss in correct cases
     if (length(ind_ok) > 0) {
       if (is.list(target$y)) {
         loss_corretos <- myloss(
@@ -43,7 +66,7 @@ oracle_loss <- torch::nn_module(
       loss_corretos <- 0
     }
 
-    # calculando a loss dos casos classificados errado
+    # calculate loss in censored cases
     # browser()
     if (length(ind_not_ok) > 0) {
       loss_errados <- nnf_oracle_loss(
@@ -60,13 +83,13 @@ oracle_loss <- torch::nn_module(
 )
 
 nnf_oracle_loss <- function(input2, target2) {
-  # calculo as probabilidades
+
+  # calculate probabilities
   probs <- torch::nnf_softmax(input2, 3)
 
-
   # browser()
-  # para cada observação, preciso calcular 1-p(obs)
-  # produto: probabilidade completa. Probabilidade do erro
+  # for each obervation, we calculate 1 - P(observed)
+  # product: complete probability of the error.
   prob_1_menos <- torch::torch_ones(length(target2))
   for (ii in seq_along(target2)) {
     prob_soma <- torch::torch_sum(target2[[ii]] * probs[ii,..,drop=FALSE], 3)
