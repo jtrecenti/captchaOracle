@@ -13,11 +13,14 @@ Imports:
     captcha,
     dplyr,
     fs,
+    lifecycle,
     purrr,
     R6,
     readr,
     rlang,
-    stringr
+    stringr,
+    tibble,
+    usethis
 Depends: 
     luz,
     torch
