@@ -189,7 +189,9 @@ captcha_dataset_oracle <- torch::dataset(
 #' @importFrom captcha captcha_transform_image captcha_transform_label
 #'
 #' @description
+#'
 #' `r lifecycle::badge("experimental")`
+#'
 #' The difference from this function to [captcha_dataset_oracle()] is that
 #' it downloads the new data directly from the internet instead of considering
 #' a fixed dataset. To take advantage of the fact that we are downloading a lot

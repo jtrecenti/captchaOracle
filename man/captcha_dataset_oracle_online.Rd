@@ -34,6 +34,7 @@ times it is an already downloaded image.}
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
+
 The difference from this function to \code{\link[=captcha_dataset_oracle]{captcha_dataset_oracle()}} is that
 it downloads the new data directly from the internet instead of considering
 a fixed dataset. To take advantage of the fact that we are downloading a lot
