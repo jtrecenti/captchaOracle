@@ -1,25 +1,31 @@
-#' Modelo de captcha com oraculo
+#' Captcha model using initial model
 #'
-#' É o mesmo modelo que o original, com a diferença que inicializamos
-#' o modelo com os pesos do modelo base ajustado no passo anterior.
+#' This is the same as the original model, but including an initial
+#' model to improve using new data. It only uses the input data, so
+#' we do not need to adapt anything from the original function here.
 #'
-#' @param base_model modelo base carregado com `luz::load_model()`
-#' @param input_dim dimensão de entrada
-#' @param output_ndigits quantidade de digitos da resposta
-#' @param output_vocab_size tamanho do vocabulario da resposta
-#' @param vocab o vocabulario da resposta
-#' @param transform função de transformação dos dados
-#' @param dropout hiperparâmetro de dropout
-#' @param dense_units hiperparâmetro de dense units na camada densa
-#'   que vem depois das convoluções
+#' @param base_model base model of class `luz_module_fitted`. Defaults to
+#'   `NULL`, which indicates no initialization of the model parameters.
+#' @param input_dim input image dimensions
+#' @param output_ndigits response variable number of digits
+#' @param output_vocab_size integer indicating size of the vocabulary
+#' @param vocab vocabulary elements
+#' @param transform function to transform input data
+#' @param dropout vector of two elements indicating dropout hyperparameter
+#' @param dense_units integer indicating number of units used in the
+#'   dense layer applied after the convolutional layers
 #'
 #' @importFrom torch nn_module
+#'
+#' @return object of classes `ORACLE-CNN` and `nn_module`. It works
+#'   as a predictive function and as the input to a luz fitting workflow.
+#'
 #' @export
 net_captcha_oracle <- torch::nn_module(
 
   "ORACLE-CNN",
 
-  initialize = function(base_model,
+  initialize = function(base_model = NULL,
                         input_dim,
                         output_ndigits,
                         output_vocab_size,
@@ -55,18 +61,20 @@ net_captcha_oracle <- torch::nn_module(
     self$vocab <- vocab
     self$transform <- transform
 
-    # browser()
+    if (!is.null(base_model)) {
 
-    operations <- c(
-      "conv1", "conv2", "conv3", "fc1", "fc2",
-      "batchnorm0", "batchnorm1", "batchnorm2", "batchnorm3"
-    )
-    for (m in operations) {
-      torch::with_no_grad(self[[m]]$weight$copy_(base_model$model[[m]]$weight))
-      torch::with_no_grad(self[[m]]$bias$copy_(base_model$model[[m]]$bias))
+      stopifnot(class(base_model) == "luz_module_fitted")
+
+      operations <- c(
+        "conv1", "conv2", "conv3", "fc1", "fc2",
+        "batchnorm0", "batchnorm1", "batchnorm2", "batchnorm3"
+      )
+      for (m in operations) {
+        torch::with_no_grad(self[[m]]$weight$copy_(base_model$model[[m]]$weight))
+        torch::with_no_grad(self[[m]]$bias$copy_(base_model$model[[m]]$bias))
+      }
     }
 
-    # self$base_model <- base_model
   },
   forward = function(x) {
 
