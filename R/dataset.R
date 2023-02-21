@@ -139,3 +139,146 @@ captcha_dataset_oraculo <- torch::dataset(
     }
   )
 )
+
+
+#' Captcha dataset do oráculo online
+#'
+#' @param root (string): root directory of the files
+#' @param model initial model.
+#' @param ntry try n times. Default 1.
+#'
+#' @importFrom torch dataset
+#' @importFrom captcha captcha_transform_image captcha_transform_label
+#'
+#' @export
+captcha_dataset_oraculo_online <- torch::dataset(
+  name = "my_captcha",
+  initialize = function(root,
+                        model,
+                        ntry = 1,
+                        captcha_access_fn,
+                        captcha_test_fn,
+                        p_new = .2) {
+    ## create directory and assign
+    self$path <- root
+    self$ntry <- ntry
+    self$model <- model
+    self$access <- captcha_access_fn
+    self$test <- captcha_test_fn
+    self$epoch_size <- 80
+    self$p_new <- p_new
+    fs::dir_create(root)
+
+  },
+
+  # check if file exists
+  check_exists = function() {
+    usethis::ui_stop("not implemented")
+  },
+
+  # returns a subset of indexed captchas
+  .getitem = function(index) {
+
+    has_files <- length(fs::dir_ls(self$path)) > 0
+    download_new <- runif(1) < self$p_new || !has_files
+
+    # clean bad files
+    fs::dir_ls(self$path, type = "file") |>
+      stringr::str_subset("(?<=_)[0-9a-zA-Z]+", negate = TRUE) |>
+      fs::file_delete()
+
+    if (download_new) {
+
+      safe_oracle <- purrr::possibly(captchaDownload::captcha_oracle, NULL)
+
+      log_data <- NULL
+
+      while (is.null(log_data)) {
+        log_data <- safe_oracle(
+          self$path,
+          manual = FALSE,
+          model = self$model,
+          max_ntry = self$ntry,
+          captcha_access = self$access,
+          captcha_test = self$test
+        )
+      }
+
+
+      files <- fs::dir_ls(self$path, type = "file") |>
+        fs::file_info() |>
+        dplyr::arrange(dplyr::desc(birth_time)) |>
+        dplyr::pull(path) |>
+        dplyr::first()
+
+      files_names <- files |>
+        basename() |>
+        tools::file_path_sans_ext()
+
+      log_data_errors <- log_data |>
+        dplyr::filter(!result) |>
+        dplyr::filter(!is.na(label)) |>
+        dplyr::mutate(file = files_names)
+
+    } else {
+
+      # browser()
+      files <- sample(fs::dir_ls(self$path, type = "file"), 1)
+
+      files_names <- files |>
+        basename() |>
+        tools::file_path_sans_ext()
+
+      file_log <- paste0(
+        dirname(self$path),
+        "/logs/",
+        stringr::str_remove(files_names, "_.*"),
+        ".log"
+      )
+
+      if (file.exists(file_log)) {
+        log_data_errors <- file_log |>
+          readr::read_csv(
+            col_types = readr::cols(.default = readr::col_character()),
+            show_col_types = FALSE
+          ) |>
+          dplyr::filter(result == "FALSE") |>
+          dplyr::filter(!is.na(label)) |>
+          dplyr::mutate(file = files_names)
+      }
+
+    }
+
+    vocab <- self$model$model$vocab
+    x <- self$model$model$transform(files)
+    z <- stringr::str_detect(files_names, "0$")
+
+    if (z) {
+      y <- log_data_errors$label |>
+        purrr::map(stringr::str_split, "") |>
+        captcha::captcha_transform_label(vocab)
+    } else {
+      y <- files_names |>
+        stringr::str_extract("(?<=_)[0-9a-zA-Z]+") |>
+        purrr::map(stringr::str_split, "") |>
+        captcha::captcha_transform_label(vocab)
+    }
+    z <- torch::torch_tensor(as.integer(z))
+
+    return(list(x = x$squeeze(1), y = list(y = y, z = z)))
+  },
+  # number of files
+  .length = function() {
+    self$epoch_size
+  },
+  # active bindings (retrive or modify)
+  active = list(
+    classes = function(cl) {
+      if (missing(cl)) c(letters, 0:9) else cl
+    }
+  )
+)
+
+
+
+
